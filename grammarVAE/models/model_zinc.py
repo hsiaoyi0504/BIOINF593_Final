@@ -1,6 +1,6 @@
 import copy
 from keras import backend as K
-from keras import objectives
+import keras
 from keras.models import Model
 from keras.layers import Input, Dense, Lambda
 from keras.layers.core import Dense, Activation, Flatten, RepeatVector
@@ -119,7 +119,7 @@ class MoleculeVAE():
             x_decoded_mean = conditional(x, x_decoded_mean) # we add this new function to the loss
             x = K.flatten(x)
             x_decoded_mean = K.flatten(x_decoded_mean)
-            xent_loss = max_length * objectives.binary_crossentropy(x, x_decoded_mean)
+            xent_loss = max_length * keras.objectives.binary_crossentropy(x, x_decoded_mean)
             kl_loss = - 0.5 * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis = -1)
             return xent_loss + kl_loss
 
