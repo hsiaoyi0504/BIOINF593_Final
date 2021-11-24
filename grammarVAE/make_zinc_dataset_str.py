@@ -25,7 +25,7 @@ for chem in L:
     OH[count,:,:] = many_one_hot(np.array(indices), DIM)
     count = count + 1
 f.close()
-h5f = h5py.File('zinc_str_dataset.h5','w')
+h5f = h5py.File('/nfs/turbo/dcmb-class/bioinf593/sec001/yihsiao/zinc_str_dataset.h5','w')
 h5f.create_dataset('data', data=OH)
 h5f.create_dataset('chr',  data=chars)
 h5f.close()

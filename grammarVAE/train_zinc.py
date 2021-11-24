@@ -36,7 +36,7 @@ def get_arguments():
 
 def main():
     # 0. load dataset
-    h5f = h5py.File('data/zinc_grammar_dataset.h5', 'r')
+    h5f = h5py.File('/nfs/turbo/dcmb-class/bioinf593/sec001/yihsiao/zinc_grammar_dataset.h5', 'r')
     data = h5f['data'][:]
     h5f.close()
     
