@@ -103,6 +103,7 @@ dependencies:
   - olefile=0.46=py27_0
   - onto2nx=0.1.0=py27_0
   - openssl=1.1.1k=h27cfd23_0
+  - pandas=0.23.4=py27h04863e7_0
   - pathlib2=2.3.5=py27h8c360ce_1
   - pbr=5.5.1=pyh9f0ad1d_0
   - pcre=8.44=he1b5a44_0
