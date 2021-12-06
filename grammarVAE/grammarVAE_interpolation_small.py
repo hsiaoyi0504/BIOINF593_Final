@@ -105,6 +105,8 @@ for i, s in enumerate(selected_fda_smiles):
     #    continue
 print("Success index (", len(success_index) , "):", success_index)
 
+success_encode = success_encode[:25]
+
 z = grammar_model.encode(success_encode)
 
 input_smiles_pairs = []
@@ -141,8 +143,8 @@ for i in range(len(success_encode)):
         total_not_identity += not_identity
 
 print("Total number of failed cases:", total_failed_number)
-print("Total number of not identity:", total_not_identity)
+print("Total number of not identity:", total_not_identity )
 print("Total number of decoded smiles:", len(success_encode) * (len(success_encode) - 1 ) * 2 * z[0].shape[0])
-with open("../grammarVAE_result.pkl", "wb") as f:
+with open("../grammarVAE_result_small.pkl", "wb") as f:
     pickle.dump([success_encode, input_smiles_pairs, result], f)
 
