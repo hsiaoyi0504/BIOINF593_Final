@@ -3,8 +3,14 @@ import pandas as pd
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Descriptors
 
-# df_250k = pd.read_csv("./mol-cycle-gan/data/input_data/250k_rndm_zinc_drugs_clean_3_canonized.csv")
-# smiles_250k = df_250k["smiles"]
+df_250k = pd.read_csv("./mol-cycle-gan/data/input_data/250k_rndm_zinc_drugs_clean_3_canonized.csv")
+smiles_250k = df_250k["smiles"]
+smiles_250k = [ Chem.MolToSmiles(Chem.MolFromSmiles(s)) for s in smiles_250k ]
+molcycle_train = pd.read_csv("rof_JTVAE_train_A.csv")
+molcycle_train_smiles = molcycle_train["smiles"].tolist()
+molcycle_train_smiles = [ Chem.MolToSmiles(Chem.MolFromSmiles(s)) for s in molcycle_train_smiles]
+
+
 
 # with open("grammarVAE_result_very_small.pkl", "rb") as f: # 25
 with open("grammarVAE_result_very_small.pkl", "rb") as f:  # 10
@@ -12,7 +18,9 @@ with open("grammarVAE_result_very_small.pkl", "rb") as f:  # 10
 
 df_mol_cycle = pd.read_csv("smiles_list_n10_A_to_B.csv")
 result_mol_cycle = df_mol_cycle['SMILES'].tolist()
+# print(len(set(result_mol_cycle)))
 
+# print(result_mol_cycle[:2])
 # print(success_encode)
 # print(len(success_encode))
 # print(len(input_smiles_pairs))
@@ -40,11 +48,14 @@ def get_not_identity_num(mols, check_list):
     check_list_smiles = []
     for s in check_list:
         check_list_smiles.append(Chem.MolToSmiles(Chem.MolFromSmiles(s)))
-    not_identity = 0
+    not_identity_smiles = []
+    not_identity_num = 0
     for m in mols:
-        if Chem.MolToSmiles(m) not in check_list_smiles:
-            not_identity += 1
-    return not_identity
+        smiles = Chem.MolToSmiles(m)
+        if smiles not in check_list_smiles:
+            not_identity_num += 1
+            not_identity_smiles.append(smiles)
+    return (not_identity_num, not_identity_smiles)
 
 
 def get_pass_rule_of_five_num(mols):
@@ -65,12 +76,27 @@ def get_pass_rule_of_five_num(mols):
         pass_num += 1
     return pass_num
 
+
+def check_novelity(smiles_list, check_list):
+    novelty_num = 0
+    for s in smiles_list:
+        if s not in check_list:
+            novelty_num += 1
+    return novelty_num
+
+
 grammar_total_failed_number = 0
 grammar_total_not_identity = 0
 grammar_total_rule_of_5 = 0
+grammar_total_unique = 0
+grammar_total_novelty_num = 0
+max_grammar_unique = 0
 molcycle_total_failed_number = 0
 molcycle_total_not_identity = 0
 molcycle_total_rule_of_5 = 0
+molcycle_total_unique = 0
+molcycle_total_novelty_num = 0
+max_molcycle_unique = 0
 for i, s in enumerate(input_smiles_pairs):
     # print(input_smiles_pairs[i])
     # Check sucess cases
@@ -79,25 +105,51 @@ for i, s in enumerate(input_smiles_pairs):
     grammar_total_failed_number += grammar_failed_num
     molcycle_total_failed_number += molcycle_failed_num
     # Not identity
-    grammar_not_identity_num = get_not_identity_num(grammar_success_cases, input_smiles_pairs[i])
-    molcycle_not_identity_num = get_not_identity_num(molcycle_success_cases, input_smiles_pairs[i])
+    grammar_not_identity_num, grammar_not_identity_smiles = get_not_identity_num(grammar_success_cases, input_smiles_pairs[i])
+    molcycle_not_identity_num, molcycle_not_identity_smiles = get_not_identity_num(molcycle_success_cases, input_smiles_pairs[i])
     grammar_total_not_identity += grammar_not_identity_num
     molcycle_total_not_identity += molcycle_not_identity_num
+    grammar_unique_smiles = list(set(grammar_not_identity_smiles))
+    molcycle_unique_smiles = list(set(molcycle_not_identity_smiles))
+    num_grammar_unique = len(grammar_unique_smiles)
+    num_molcycle_unique = len(molcycle_unique_smiles)
+    grammar_total_unique += num_grammar_unique
+    molcycle_total_unique += num_molcycle_unique
+    if num_grammar_unique > max_grammar_unique and num_molcycle_unique > max_molcycle_unique:
+        selected_pair = s
+        max_grammar_unique = num_grammar_unique
+        max_molcycle_unique = num_molcycle_unique
+        selected_grammar_generation = grammar_unique_smiles
+        selected_molcycle_generation = molcycle_unique_smiles
     # Rule of 5
     grammar_rule_of_5 = get_pass_rule_of_five_num(grammar_success_cases)
     molcycle_rule_of_5 = get_pass_rule_of_five_num(molcycle_success_cases)
     grammar_total_rule_of_5 += grammar_rule_of_5
     molcycle_total_rule_of_5 += molcycle_rule_of_5
-    # 
+    grammar_novelty_num = check_novelity(grammar_unique_smiles, smiles_250k)
+    molcycle_novelty_num = check_novelity(molcycle_unique_smiles, molcycle_train_smiles + smiles_250k)
+    grammar_total_novelty_num += grammar_novelty_num
+    molcycle_total_novelty_num += molcycle_novelty_num
 
-
+print("selected visualization pair:", selected_pair)
+print("GrammarVAE result:", selected_grammar_generation)
+print("MolCycle GAN result:", selected_molcycle_generation)
+print("-----------------------------------------------------")
+print("Summary statistics:")
+print("-----------------------------------------------------")
 total_generated_num = len(success_encode) * (len(success_encode) - 1) / 2 * 56 * 2
+print("Total number points tested: {}".format(total_generated_num))
 print("Grammar VAE:")
 print("Success rate: {:.0%} ({}/{})".format((total_generated_num - grammar_total_failed_number) / float(total_generated_num), total_generated_num - grammar_total_failed_number, total_generated_num))
-print("Not identity rate: {:.0%} ({}/{})".format( grammar_total_not_identity / float(total_generated_num), grammar_total_not_identity, total_generated_num))
-print("Rule of five rate: {:.0%} ({}/{})".format( grammar_total_rule_of_5 / float(total_generated_num), grammar_total_rule_of_5, total_generated_num))
+print("Not identity rate: {:.0%} ({}/{})".format(grammar_total_not_identity / float(total_generated_num), grammar_total_not_identity, total_generated_num))
+print("Unique rate: {:.0%} ({}/{})".format(grammar_total_unique / float(total_generated_num), grammar_total_unique, total_generated_num))
+print("Novelty rate: {:.0%} ({}/{})".format(grammar_total_novelty_num / float(total_generated_num), grammar_total_novelty_num, total_generated_num))
+print("Rule of five rate: {:.0%} ({}/{})".format(grammar_total_rule_of_5 / float(total_generated_num), grammar_total_rule_of_5, total_generated_num))
+
 print("-----------------------------------------------------")
 print("MolCycle GAN:")
 print("Success rate: {:.0%} ({}/{})".format((total_generated_num - molcycle_total_failed_number) / float(total_generated_num), total_generated_num - molcycle_total_failed_number, total_generated_num))
-print("Not identity rate: {:.0%} ({}/{})".format( molcycle_total_not_identity / float(total_generated_num), molcycle_total_not_identity, total_generated_num))
-print("Rule of five rate: {:.0%} ({}/{})".format( molcycle_total_rule_of_5 / float(total_generated_num), molcycle_total_rule_of_5, total_generated_num))
+print("Not identity rate: {:.0%} ({}/{})".format(molcycle_total_not_identity / float(total_generated_num), molcycle_total_not_identity, total_generated_num))
+print("Unique rate: {:.0%} ({}/{})".format(molcycle_total_unique / float(total_generated_num), molcycle_total_unique, total_generated_num))
+print("Novelty rate: {:.0%} ({}/{})".format(molcycle_total_novelty_num / float(total_generated_num), molcycle_total_novelty_num, total_generated_num))
+print("Rule of five rate: {:.0%} ({}/{})".format(molcycle_total_rule_of_5 / float(total_generated_num), molcycle_total_rule_of_5, total_generated_num))
