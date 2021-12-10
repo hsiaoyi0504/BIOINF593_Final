@@ -1,6 +1,5 @@
 # DATA
 *.csv
-data/results/*
 
 # IPYTHON CHECKPOINTS
 *.ipynb_checkpoints
