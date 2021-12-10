@@ -123,89 +123,21 @@ def save_train_functions(train_functions_tuple, save_path):
     netD_B_train_function.save_weights(os.path.join(save_path, 'Discriminator_B_train_function_weights.h5'))
 
 
-def run_train_loop(train_settings_tuple,
-                   train_functions_tuple,
-                   generator_functions_tuple,
-                   image_pools_tuple,
-                   batches_tuple,
-                   discriminators_tuple):
-    batch_size, how_many_epochs, d_iters, discriminator_patience, use_data_pooling, use_wgan, print_cost = \
-        train_settings_tuple
-    netG_train_function, netD_A_train_function, netD_B_train_function = train_functions_tuple
-    netG_A_function, netG_B_function = generator_functions_tuple
-    fake_A_pool, fake_B_pool = image_pools_tuple
-    train_batch, test_batch = batches_tuple
-    netD_A, netD_B = discriminators_tuple
-
-    time_start = time.time()
-    iteration_count = 0
-    epoch_count = 0
-    display_freq = 50000 // batch_size
-
-    K.set_learning_phase(1)
-
-    while epoch_count < how_many_epochs:
-        target_label = np.zeros((batch_size, 1))
-        epoch_count, A, B = next(train_batch)
-
-        tmp_fake_B = netG_A_function([A, 1])[0]
-        tmp_fake_A = netG_B_function([B, 1])[0]
-
-        if use_data_pooling:
-            _fake_B = fake_B_pool.query_over_images(tmp_fake_B)
-            _fake_A = fake_A_pool.query_over_images(tmp_fake_A)
-        else:
-            _fake_B = tmp_fake_B
-            _fake_A = tmp_fake_A
-
-        if use_wgan:
-            netD_B_train_function.train_on_batch([B, _fake_B], target_label)
-            netD_A_train_function.train_on_batch([A, _fake_A], target_label)
-            clip_weights(netD_B)
-            clip_weights(netD_A)
-
-            if iteration_count % d_iters == 0:
-                netG_train_function.train_on_batch([A, B], target_label)
-        else:
-            netG_train_function.train_on_batch([A, B], target_label)
-
-            if iteration_count % discriminator_patience == 0:
-                netD_B_train_function.train_on_batch([B, _fake_B], target_label)
-                netD_A_train_function.train_on_batch([A, _fake_A], target_label)
-
-        iteration_count += 1
-
-        if print_cost and iteration_count % display_freq == 0:
-            target_label = np.zeros((batch_size, 1))
-            epoch_count_, A, B = next(test_batch)
-
-            _fake_B = netG_A_function([A, 1])[0]
-            _fake_A = netG_B_function([B, 1])[0]
-
-            timecost = (time.time() - time_start) / 60
-            print('\nEpoch_count: {}  iter_count: {}  timecost: {}mins'.format(epoch_count,
-                                                                               iteration_count,
-                                                                               timecost))
-            print('\nDiscriminator A loss: {} \nDiscriminator B loss: {}'.format(
-                netD_A_train_function.evaluate([A, _fake_A], target_label),
-                netD_B_train_function.evaluate([B, _fake_B], target_label)))
-            print('\nGenerator loss: {}'.format(
-                netG_train_function.evaluate([A, B], target_label)))
-
-
 def process_test_data(generators_tuple, test_data_tuple, save_path):
     netG_A, netG_B = generators_tuple
+    netG_A.load_weights(os.path.join(save_path, 'Generator_A_weights.h5'))
+    netG_B.load_weights(os.path.join(save_path, 'Generator_B_weights.h5'))
     test_A, test_B = test_data_tuple
 
     outputs = get_generator_outputs(netG_B, netG_A, test_B)
     fake_output, rec_input = outputs
     df_fake_output = pd.DataFrame(fake_output)
-    df_fake_output.to_csv(os.path.join(save_path, 'X_cycle_GAN_encoded_B_to_A.csv'))
+    df_fake_output.to_csv(os.path.join(save_path, 'FDA_cycle_GAN_encoded_n25_B_to_A.csv'))
 
     outputs = get_generator_outputs(netG_A, netG_B, test_A)
     fake_output, rec_input = outputs
     df_fake_output = pd.DataFrame(fake_output)
-    df_fake_output.to_csv(os.path.join(save_path, 'X_cycle_GAN_encoded_A_to_B.csv'))
+    df_fake_output.to_csv(os.path.join(save_path, 'FDA_cycle_GAN_encoded_n25_A_to_B.csv'))
 
 
 def get_networks_params(input_shape, use_dropout, use_batch_norm, use_leaky_relu, use_wgan):
@@ -254,19 +186,15 @@ def train_model(network_parameters_tuple,
     generator_functions_tuple = create_generator_functions(generators_tuple)
 
     image_pools_tuple = create_image_pools(data_pool_size)
-
+    '''
     run_train_loop(train_settings_tuple,
                    train_functions_tuple,
                    generator_functions_tuple,
                    image_pools_tuple,
                    batches_tuple,
                    discriminators_tuple)
-
+    '''
     process_test_data(generators_tuple, test_data_tuple, save_path)
-
-    if save_model:
-        save_networks(discriminators_tuple, generators_tuple, save_path)
-        save_train_functions(train_functions_tuple, save_path)
 
 
 def main():
@@ -291,7 +219,7 @@ def main():
 
     parser.add_argument("--data_path", default="data/input_data/rule_of_5/")
     parser.add_argument("--train_file", default="rof_JTVAE_train_")
-    parser.add_argument("--test_file", default="rof_JTVAE_test_")
+    parser.add_argument("--test_file", default="FDA_JTVAE_interpolation_i2_n25_")
 
     parser.add_argument("--save_path", default="data/results/rule_of_5/")
     parser.add_argument("--save_model", default=True, type=bool)

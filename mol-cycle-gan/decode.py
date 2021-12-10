@@ -42,7 +42,7 @@ def load_model(opts):
 
 def decode_from_jtvae(data_path, opts, model):
     smiles_df = pd.read_csv(data_path, index_col=0)
-    mols = smiles_df.values
+    mols = smiles_df.values[16800:,:]
     returned_smiles = []
 
     tree_dims = int(opts.latent_size / 2)
@@ -80,13 +80,13 @@ def decode(jtvae_path_tuple,
     model = load_model(opts)
 
     smiles_A_to_B = decode_from_jtvae(path_A_to_B, opts, model)
-    smiles_B_to_A = decode_from_jtvae(path_B_to_A, opts, model)
+    # smiles_B_to_A = decode_from_jtvae(path_B_to_A, opts, model)
 
     df_to_save_A_to_B = pd.DataFrame(smiles_A_to_B, columns=['SMILES'])
-    df_to_save_B_to_A = pd.DataFrame(smiles_B_to_A, columns=['SMILES'])
+    # df_to_save_B_to_A = pd.DataFrame(smiles_B_to_A, columns=['SMILES'])
 
     df_to_save_A_to_B.to_csv(save_path_A_to_B, index=False)
-    df_to_save_B_to_A.to_csv(save_path_B_to_A, index=False)
+    # df_to_save_B_to_A.to_csv(save_path_B_to_A, index=False)
 
 
 def main():
@@ -99,9 +99,9 @@ def main():
     parser.add_argument("--latent_size", default=56, type=int)
     parser.add_argument("--depth", default=3, type=int)
 
-    parser.add_argument("--data_path", default="./data/results/aromatic_rings/")
-    parser.add_argument("--file_to_encode", default="X_cycle_GAN_encoded_")
-    parser.add_argument("--save_name", default="smiles_list_")
+    parser.add_argument("--data_path", default="./data/results/rule_of_5/")
+    parser.add_argument("--file_to_encode", default="FDA_cycle_GAN_encoded_n25_")
+    parser.add_argument("--save_name", default="smiles_list_n25_33600_")
 
     args = parser.parse_args()
 
@@ -113,6 +113,6 @@ def main():
            jtvae_setting_tuple,
            encoding_data_tuple)
 
-
+    print('Finished !!!!!!!!!!!!!!!!!!')
 if __name__ == "__main__":
     main()
