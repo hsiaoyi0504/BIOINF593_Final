@@ -13,11 +13,12 @@ molcycle_train_smiles = [ Chem.MolToSmiles(Chem.MolFromSmiles(s), 1) for s in mo
 
 
 # with open("grammarVAE_result_very_small.pkl", "rb") as f: # 25
-with open("grammarVAE_result_very_small.pkl", "rb") as f:  # 10
+with open("grammarVAE_result_small.pkl", "rb") as f:  # 10
     success_encode, input_smiles_pairs, result_grammar = pickle.load(f)
 
-df_mol_cycle = pd.read_csv("smiles_list_n10_A_to_B.csv")
-result_mol_cycle = df_mol_cycle['SMILES'].tolist()
+df_mol_cycle_1 = pd.read_csv("smiles_list_n25_16800_A_to_B.csv")
+df_mol_cycle_2 = pd.read_csv("smiles_list_n25_33600_A_to_B.csv")
+result_mol_cycle = df_mol_cycle_1['SMILES'].tolist() + df_mol_cycle_2['SMILES'].tolist()
 # print(len(set(result_mol_cycle)))
 
 # print(result_mol_cycle[:2])
